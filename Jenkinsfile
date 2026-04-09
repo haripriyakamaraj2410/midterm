@@ -13,10 +13,11 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'token',
                                                  usernameVariable: 'DOCKER_USER',
                                                  passwordVariable: 'DOCKER_PASS')]) {
-                    bat '''
+                    // Use double quotes around variables to prevent issues with special characters
+                    bat """
                         docker logout
                         echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
-                    '''
+                    """
                 }
             }
         }
@@ -36,9 +37,10 @@ pipeline {
         stage('Run Container') {
             steps {
                 bat '''
-                    docker stop midterm-app || echo "No old container"
-                    docker rm midterm-app || echo "No container to remove"
-                    echo "5" | docker run --rm --name midterm-app haripriyakamaraj2410/app:latest
+                    docker stop midterm-app || exit 0
+                    docker rm midterm-app || exit 0
+                    :: The -i flag is crucial to allow the piped "5" to enter the container
+                    echo 5 | docker run -i --rm --name midterm-app haripriyakamaraj2410/app:latest
                 '''
             }
         }
@@ -50,6 +52,9 @@ pipeline {
         }
         success {
             echo '✅ Pipeline completed successfully!'
+        }
+        failure {
+            echo '❌ Pipeline failed. Check the console output for errors.'
         }
     }
 }
